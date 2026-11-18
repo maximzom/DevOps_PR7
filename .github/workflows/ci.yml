@@ -1,0 +1,74 @@
+name: Containerized Service Verification CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  BASE_URL: http://127.0.0.1:8080
+  EXPECTED_RELEASE: devops_7-homework
+  CHECK_TIMEOUT: "3"
+  HTTP_TIMEOUT: "3.0"
+
+jobs:
+  verify-service:
+    name: "Build, Verify & Diagnostics"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Docker image and run container
+        run: |
+          docker build -t devops7-service:${{ github.sha }} .
+          docker run -d --name devops7-web -p 127.0.0.1:8080:80 devops7-service:${{ github.sha }}
+
+      - name: Wait for service HTTP readiness
+        run: |
+          timeout 20 bash -c 'until curl -sf http://127.0.0.1:8080/health.json >/dev/null; do sleep 1; done'
+
+      - name: Run unit, infrastructure and HTTP tests
+        run: |
+          mkdir -p reports
+          pytest tests/unit -v --junitxml=reports/pytest-unit.xml
+          pytest --hosts=docker://devops7-web tests/infra -v --junitxml=reports/pytest-infra.xml
+          pytest tests/http -v --junitxml=reports/pytest-http.xml
+
+      - name: Run service check command
+        run: |
+          python check_service.py
+
+      - name: Готовність підтверджено
+        run: |
+          echo "Готовність підтверджено: усі інфраструктурні, HTTP та модульні перевірки пройшли успішно!"
+
+      - name: Collect container logs
+        if: always()
+        run: |
+          mkdir -p reports
+          docker logs devops7-web > reports/container.log 2>&1 || true
+
+      - name: Upload pytest reports and container logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-verification-artifacts-${{ github.run_id }}
+          path: reports/
+
+      - name: Remove test container
+        if: always()
+        run: |
+          docker rm -f devops7-web || true
