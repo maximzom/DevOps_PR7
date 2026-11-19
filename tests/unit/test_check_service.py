@@ -37,7 +37,7 @@ def test_check_service_success_with_env(monkeypatch, capsys):
 
 def test_check_service_wrong_release(monkeypatch, capsys):
     monkeypatch.setenv("BASE_URL", "http://127.0.0.1:8080")
-    monkeypatch.setenv("EXPECTED_RELEASE", "devops-zelinskyi-51")
+    monkeypatch.setenv("EXPECTED_RELEASE", "devops_7-homework")
     monkeypatch.setenv("CHECK_TIMEOUT", "3")
 
     def fake_run(cmd, **kwargs):
@@ -55,12 +55,12 @@ def test_check_service_wrong_release(monkeypatch, capsys):
 
     assert exit_code == 1
     assert "[FAIL]" in out
-    assert "devops-zelinskyi-51" in out
+    assert "devops_7-homework" in out
 
 
 def test_check_service_curl_error(monkeypatch, capsys):
     monkeypatch.setenv("BASE_URL", "http://127.0.0.1:8080")
-    monkeypatch.setenv("EXPECTED_RELEASE", "devops-zelinskyi-51")
+    monkeypatch.setenv("EXPECTED_RELEASE", "devops_7-homework")
 
     def fake_run(cmd, **kwargs):
         return subprocess.CompletedProcess(
@@ -82,7 +82,7 @@ def test_check_service_curl_error(monkeypatch, capsys):
 
 def test_check_service_timeout(monkeypatch, capsys):
     monkeypatch.setenv("BASE_URL", "http://127.0.0.1:8080")
-    monkeypatch.setenv("EXPECTED_RELEASE", "devops-zelinskyi-51")
+    monkeypatch.setenv("EXPECTED_RELEASE", "devops_7-homework")
     monkeypatch.setenv("CHECK_TIMEOUT", "2")
 
     def fake_run(cmd, **kwargs):
